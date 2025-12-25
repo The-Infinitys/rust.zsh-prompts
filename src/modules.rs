@@ -1,8 +1,8 @@
+pub mod cmd;
+pub mod git;
 pub mod os;
 pub mod pwd;
 pub mod time;
-pub mod git;
-pub mod cmd;
 
 // 色の選択肢を定義するenum
 #[derive(Debug, PartialEq, Eq, Hash, Clone)] // Hash, Cloneを追加
@@ -46,7 +46,6 @@ impl std::str::FromStr for Color {
     }
 }
 
-
 impl std::fmt::Display for Color {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -64,7 +63,8 @@ impl std::fmt::Display for Color {
 }
 
 impl Color {
-    pub fn as_ansi_code(&self) -> String { // Stringを返すように変更
+    pub fn as_ansi_code(&self) -> String {
+        // Stringを返すように変更
         match self {
             Color::Red => "31".to_string(),
             Color::Green => "32".to_string(),
@@ -87,7 +87,10 @@ pub struct PromptSegment {
 
 impl PromptSegment {
     pub fn new(content: String) -> Self {
-        Self { content, color: None }
+        Self {
+            content,
+            color: None,
+        }
     }
 
     pub fn new_with_color(content: String, color_str: &str) -> Self {

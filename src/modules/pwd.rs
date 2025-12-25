@@ -1,11 +1,13 @@
+use crate::modules::{Color, PromptSegment};
 use std::env;
 use std::fs;
-use crate::modules::{PromptSegment, Color};
 
 pub fn get_smart_pwd(color: Option<Color>) -> PromptSegment {
     let current_dir = match env::current_dir() {
         Ok(path) => path,
-        Err(_) => return PromptSegment::new_with_color(" Error".to_string(), &Color::Red.to_string()),
+        Err(_) => {
+            return PromptSegment::new_with_color(" Error".to_string(), &Color::Red.to_string());
+        }
     };
 
     let home_dir = dirs::home_dir();
@@ -60,9 +62,12 @@ pub fn get_smart_pwd(color: Option<Color>) -> PromptSegment {
                 display_path = format!("...{}", &display_path[display_path.len() - max_len + 3..]);
             }
         } else {
-             display_path = format!("...{}", &display_path[display_path.len() - max_len + 3..]);
+            display_path = format!("...{}", &display_path[display_path.len() - max_len + 3..]);
         }
     }
 
-    PromptSegment::new_with_color(format!("{} {}", icon, display_path), &color.unwrap_or(Color::Cyan).to_string())
+    PromptSegment::new_with_color(
+        format!("{} {}", icon, display_path),
+        &color.unwrap_or(Color::Cyan).to_string(),
+    )
 }

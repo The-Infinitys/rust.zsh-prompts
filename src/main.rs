@@ -2,7 +2,6 @@ use clap::{Parser, Subcommand};
 use std::io::{self, Write};
 use zsh_prompts::*;
 
-
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
@@ -70,15 +69,15 @@ fn main() -> io::Result<()> {
         Commands::Os { color } => {
             let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
             vec![os::get_os_icon(parsed_color)]
-        },
+        }
         Commands::Pwd { color } => {
             let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
             vec![pwd::get_smart_pwd(parsed_color)]
-        },
+        }
         Commands::Time { color } => {
             let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
             vec![time::get_time(parsed_color)]
-        },
+        }
         Commands::Git {
             color,
             git_icon_color,
@@ -93,12 +92,20 @@ fn main() -> io::Result<()> {
             behind_color,
         } => {
             let parsed_default_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
-            let parsed_git_icon_color = git_icon_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_git_icon_color = git_icon_color
+                .as_ref()
+                .and_then(|c| c.parse::<Color>().ok());
             let parsed_branch_color = branch_color.as_ref().and_then(|c| c.parse::<Color>().ok());
             let parsed_staged_color = staged_color.as_ref().and_then(|c| c.parse::<Color>().ok());
-            let parsed_unstaged_color = unstaged_color.as_ref().and_then(|c| c.parse::<Color>().ok());
-            let parsed_untracked_color = untracked_color.as_ref().and_then(|c| c.parse::<Color>().ok());
-            let parsed_conflict_color = conflict_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_unstaged_color = unstaged_color
+                .as_ref()
+                .and_then(|c| c.parse::<Color>().ok());
+            let parsed_untracked_color = untracked_color
+                .as_ref()
+                .and_then(|c| c.parse::<Color>().ok());
+            let parsed_conflict_color = conflict_color
+                .as_ref()
+                .and_then(|c| c.parse::<Color>().ok());
             let parsed_stashed_color = stashed_color.as_ref().and_then(|c| c.parse::<Color>().ok());
             let parsed_clean_color = clean_color.as_ref().and_then(|c| c.parse::<Color>().ok());
             let parsed_ahead_color = ahead_color.as_ref().and_then(|c| c.parse::<Color>().ok());
@@ -116,14 +123,23 @@ fn main() -> io::Result<()> {
                 parsed_ahead_color,
                 parsed_behind_color,
             )
-        },
-        Commands::Cmd { last_status, last_command_executed, color } => {
+        }
+        Commands::Cmd {
+            last_status,
+            last_command_executed,
+            color,
+        } => {
             let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
-            vec![cmd::get_execution_info(*last_status, *last_command_executed, parsed_color)]
+            vec![cmd::get_execution_info(
+                *last_status,
+                *last_command_executed,
+                parsed_color,
+            )]
         }
     };
 
-    let full_output: String = segments.into_iter()
+    let full_output: String = segments
+        .into_iter()
         .map(|segment| segment.format())
         .collect::<Vec<String>>()
         .join(" ");

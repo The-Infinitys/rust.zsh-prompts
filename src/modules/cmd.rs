@@ -1,7 +1,11 @@
+use crate::modules::{Color, PromptSegment};
 use chrono::Utc;
-use crate::modules::{PromptSegment, Color};
 
-pub fn get_execution_info(last_status: i32, last_command_executed: Option<f64>, color: Option<Color>) -> PromptSegment {
+pub fn get_execution_info(
+    last_status: i32,
+    last_command_executed: Option<f64>,
+    color: Option<Color>,
+) -> PromptSegment {
     let status_icon: &str;
     let segment_color: Color;
 
@@ -21,7 +25,8 @@ pub fn get_execution_info(last_status: i32, last_command_executed: Option<f64>, 
         let timer_now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
         let delta_f64 = timer_now_f64 - timer_start_f64;
 
-        if delta_f64 >= 0.5 { // Only display if 0.5s or more
+        if delta_f64 >= 0.5 {
+            // Only display if 0.5s or more
             let total_seconds = delta_f64.trunc() as i64;
             let days = total_seconds / 86400;
             let hours = (total_seconds % 86400) / 3600;
@@ -37,7 +42,7 @@ pub fn get_execution_info(last_status: i32, last_command_executed: Option<f64>, 
             if minutes > 0 {
                 duration_str.push_str(&format!("{}m", minutes));
             }
-            
+
             // If less than 1 second, show seconds with two decimal places (rounded)
             if delta_f64 < 1.0 {
                 duration_str.push_str(&format!("{:.2}s", delta_f64));
@@ -172,4 +177,3 @@ mod tests {
         assert_eq!(result.color, Some(Color::Yellow));
     }
 }
-
