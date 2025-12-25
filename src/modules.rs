@@ -99,10 +99,10 @@ impl PromptSegment {
         Self { content, color }
     }
 
-    // 色を適用した文字列を生成するヘルパーメソッド
     pub fn format(&self) -> String {
         if let Some(color) = &self.color {
-            format!("\x1b[{}m{}\x1b[0m", color.as_ansi_code(), self.content)
+            // \x1b[39m を使うことで、文字色だけをデフォルトに戻す
+            format!("\x1b[{}m{}\x1b[39m", color.as_ansi_code(), self.content)
         } else {
             self.content.clone()
         }
