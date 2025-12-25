@@ -4,3 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+clap = { version = "4.5.53", features = ["derive"] }
+chrono = "0.4.42"
+dirs = "6.0.0"
+regex = "1.12.2"
+os_info = "3.14.0"
+
