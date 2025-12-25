@@ -1,6 +1,7 @@
 use chrono::Local;
+use crate::modules::PromptSegment;
 
-pub fn get_time() -> String {
+pub fn get_time() -> PromptSegment {
     let now = Local::now();
-    format!(" {}", now.format("%H:%M:%S"))
+    PromptSegment::new(format!(" {}", now.format("%H:%M:%S")))
 }

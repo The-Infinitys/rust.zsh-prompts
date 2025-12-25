@@ -1,12 +1,16 @@
 use chrono::Utc;
+use crate::modules::PromptSegment;
 
-pub fn get_execution_info(last_status: i32, last_command_executed: Option<f64>) -> String {
+pub fn get_execution_info(last_status: i32, last_command_executed: Option<f64>) -> PromptSegment {
     let status_icon: &str;
+    let color: String;
 
     if last_status == 0 {
         status_icon = ""; // Success
+        color = "green".to_string();
     } else {
         status_icon = ""; // Failure
+        color = "red".to_string();
     }
 
     let mut duration_str = String::new();
@@ -55,7 +59,7 @@ pub fn get_execution_info(last_status: i32, last_command_executed: Option<f64>) 
         info = format!("{} {}", info, last_status);
     }
 
-    info
+    PromptSegment::new_with_color(info, color)
 }
 
 #[cfg(test)]
@@ -68,7 +72,8 @@ mod tests {
         let last_status = 0;
         let last_command_executed = None;
         let result = get_execution_info(last_status, last_command_executed);
-        assert_eq!(result, "");
+        assert_eq!(result.content, "");
+        assert_eq!(result.color, Some("green".to_string()));
     }
 
     #[test]
@@ -78,7 +83,8 @@ mod tests {
         let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
         let last_command_executed = Some(now_f64 - 0.5); // 0.5 seconds ago
         let result = get_execution_info(last_status, last_command_executed);
-        assert_eq!(result, " 0.50s");
+        assert_eq!(result.content, " 0.50s");
+        assert_eq!(result.color, Some("green".to_string()));
     }
 
     #[test]
@@ -86,7 +92,8 @@ mod tests {
         let last_status = 1;
         let last_command_executed = None;
         let result = get_execution_info(last_status, last_command_executed);
-        assert_eq!(result, " 1");
+        assert_eq!(result.content, " 1");
+        assert_eq!(result.color, Some("red".to_string()));
     }
 
     #[test]
@@ -96,7 +103,8 @@ mod tests {
         let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
         let last_command_executed = Some(now_f64 - 1.2); // 1.2 seconds ago
         let result = get_execution_info(last_status, last_command_executed);
-        assert_eq!(result, " 1s 127");
+        assert_eq!(result.content, " 1s 127");
+        assert_eq!(result.color, Some("red".to_string()));
     }
 
     #[test]
@@ -106,7 +114,8 @@ mod tests {
         let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
         let last_command_executed = Some(now_f64 - 150.5); // 2m 30.5s ago
         let result = get_execution_info(last_status, last_command_executed);
-        assert_eq!(result, " 2m30s");
+        assert_eq!(result.content, " 2m30s");
+        assert_eq!(result.color, Some("green".to_string()));
     }
 
     #[test]
@@ -116,7 +125,8 @@ mod tests {
         let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
         let last_command_executed = Some(now_f64 - 5.000); // 5 seconds ago
         let result = get_execution_info(last_status, last_command_executed);
-        assert_eq!(result, " 5s");
+        assert_eq!(result.content, " 5s");
+        assert_eq!(result.color, Some("green".to_string()));
     }
 
     #[test]
@@ -126,7 +136,8 @@ mod tests {
         let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
         let last_command_executed = Some(now_f64 - (86400.0 + 7200.0 + 180.0 + 4.0 + 0.9)); // 1d 2h 3m 4.9s ago
         let result = get_execution_info(last_status, last_command_executed);
-        assert_eq!(result, " 1d2h3m4s");
+        assert_eq!(result.content, " 1d2h3m4s");
+        assert_eq!(result.color, Some("green".to_string()));
     }
 
     #[test]
@@ -136,6 +147,8 @@ mod tests {
         let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
         let last_command_executed = Some(now_f64 - 0.05);
         let result = get_execution_info(last_status, last_command_executed);
-        assert_eq!(result, ""); // Should not display time
+        assert_eq!(result.content, ""); // Should not display time
+        assert_eq!(result.color, Some("green".to_string()));
     }
 }
+

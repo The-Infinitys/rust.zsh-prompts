@@ -1,12 +1,13 @@
 use os_info::Type;
+use crate::modules::PromptSegment;
 
-pub fn get_os_icon() -> String {
-    let info = os_info::get(); // Corrected: use os_info::get()
-    match info.os_type() {
+pub fn get_os_icon() -> PromptSegment {
+    let info = os_info::get();
+    let icon = match info.os_type() {
         Type::Macos => "".to_string(), // Apple icon
         Type::Ubuntu => "".to_string(), // Ubuntu
         Type::Fedora => "".to_string(), // Fedora
-        Type::CentOS | Type::Redhat => "".to_string(), // CentOS/RHEL (Corrected: Type::CentOS)
+        Type::CentOS | Type::Redhat => "".to_string(), // CentOS/RHEL
         Type::Arch => "󰣇".to_string(), // Arch
         Type::Debian => "".to_string(), // Debian
         Type::Windows => "".to_string(), // Windows
@@ -19,7 +20,8 @@ pub fn get_os_icon() -> String {
             }
         }
         _ => "󰀵".to_string(), // Default icon
-    }
+    };
+    PromptSegment::new(icon)
 }
 
 fn is_wsl() -> bool {

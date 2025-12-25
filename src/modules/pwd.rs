@@ -1,10 +1,11 @@
 use std::env;
 use std::fs;
+use crate::modules::PromptSegment;
 
-pub fn get_smart_pwd() -> String {
+pub fn get_smart_pwd() -> PromptSegment {
     let current_dir = match env::current_dir() {
         Ok(path) => path,
-        Err(_) => return " Error".to_string(),
+        Err(_) => return PromptSegment::new_with_color(" Error".to_string(), "red".to_string()),
     };
 
     let home_dir = dirs::home_dir();
@@ -34,9 +35,9 @@ pub fn get_smart_pwd() -> String {
         }
         #[cfg(windows)]
         {
-            // Windows permissions are more complex; simplified check or omit for now
-            // For a robust solution, one would use winapi to check ACLs.
-            // For now, we'll assume writable on Windows unless explicitly handled.
+            // Windows permissionsはより複雑です; 現時点では簡略化または省略します。
+            // 堅牢なソリューションのためには、winapiを使用してACLをチェックする必要があります。
+            // 現時点では、明示的に処理しない限りWindowsでは書き込み可能と仮定します。
         }
     }
 
@@ -63,5 +64,5 @@ pub fn get_smart_pwd() -> String {
         }
     }
 
-    format!("{} {}", icon, display_path)
+    PromptSegment::new(format!("{} {}", icon, display_path))
 }

@@ -1,7 +1,10 @@
 use std::process::Command;
 use regex::Regex;
+use crate::modules::PromptSegment;
 
-pub fn get_git_status() -> String {
+pub fn get_git_status() -> Vec<PromptSegment> {
+    let mut segments: Vec<PromptSegment> = Vec::new();
+
     // 1. Check if inside Git repository
     let is_git_repo = Command::new("git")
         .arg("rev-parse")
@@ -11,10 +14,8 @@ pub fn get_git_status() -> String {
         .unwrap_or(false);
 
     if !is_git_repo {
-        return "".to_string(); // Not a git repository, return empty
+        return segments; // Not a git repository, return empty vector
     }
-
-    let mut output_parts = Vec::new();
 
     // Remote icon
     let remote_url_output = Command::new("git")
@@ -27,13 +28,13 @@ pub fn get_git_status() -> String {
         .unwrap_or_default();
 
     let remote_icon = if remote_url_output.contains("github.com") {
-        ""
+        "" // GitHub icon (blue)
     } else if remote_url_output.contains("gitlab.com") {
-        ""
+        "" // GitLab icon (orange)
     } else {
-        "󰊢"
+        "󰊢" // Generic remote icon (white)
     };
-    output_parts.push(remote_icon.to_string());
+    segments.push(PromptSegment::new_with_color(remote_icon.to_string(), "blue".to_string()));
 
     // Branch name
     let branch_output = Command::new("git")
@@ -50,8 +51,8 @@ pub fn get_git_status() -> String {
         .map(|s| s.trim().to_string())
         .unwrap_or_else(|| "unknown".to_string());
     
-    output_parts.push("".to_string()); // Git icon
-    output_parts.push(branch_output);
+    segments.push(PromptSegment::new("".to_string())); // Git icon (white)
+    segments.push(PromptSegment::new_with_color(branch_output, "yellow".to_string())); // Branch name (yellow)
 
     // Git status --porcelain=v2 --branch
     let status_output = Command::new("git")
@@ -105,22 +106,19 @@ pub fn get_git_status() -> String {
         .unwrap_or(false);
 
     // Assemble status icons
-    let mut status_icons_str = String::new();
-    if staged_changes > 0 { status_icons_str.push_str(&format!("+{} ", staged_changes)); }
-    if unstaged_changes > 0 { status_icons_str.push_str(&format!("!{} ", unstaged_changes)); }
-    if untracked_files > 0 { status_icons_str.push_str(&format!("?{} ", untracked_files)); }
-    if conflicts > 0 { status_icons_str.push_str(&format!("{} ", conflicts)); }
-    if stashed { status_icons_str.push_str(" "); }
+    if staged_changes > 0 { segments.push(PromptSegment::new_with_color(format!("+{}", staged_changes), "green".to_string())); }
+    if unstaged_changes > 0 { segments.push(PromptSegment::new_with_color(format!("!{}", unstaged_changes), "red".to_string())); }
+    if untracked_files > 0 { segments.push(PromptSegment::new_with_color(format!("?{}", untracked_files), "cyan".to_string())); }
+    if conflicts > 0 { segments.push(PromptSegment::new_with_color(format!("{}", conflicts), "magenta".to_string())); }
+    if stashed { segments.push(PromptSegment::new_with_color("".to_string(), "blue".to_string())); }
 
-    if status_icons_str.is_empty() {
-        output_parts.push("".to_string()); // Clean icon
-    } else {
-        output_parts.push(status_icons_str.trim().to_string());
+    if staged_changes == 0 && unstaged_changes == 0 && untracked_files == 0 && conflicts == 0 && !stashed {
+        segments.push(PromptSegment::new_with_color("".to_string(), "green".to_string())); // Clean icon
     }
 
     // Assemble push/pull status
-    if ahead > 0 { output_parts.push(format!("↑{}", ahead)); }
-    if behind > 0 { output_parts.push(format!("↓{}", behind)); }
+    if ahead > 0 { segments.push(PromptSegment::new_with_color(format!("↑{}", ahead), "white".to_string())); }
+    if behind > 0 { segments.push(PromptSegment::new_with_color(format!("↓{}", behind), "red".to_string())); }
 
-    output_parts.join(" ")
+    segments
 }

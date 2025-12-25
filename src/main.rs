@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 use std::io::{self, Write};
+use zsh_prompts::*;
 
-mod modules;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -32,16 +32,21 @@ enum Commands {
 fn main() -> io::Result<()> {
     let cli = Cli::parse();
 
-    let output = match &cli.command {
-        Commands::Os => modules::os::get_os_icon(),
-        Commands::Pwd => modules::pwd::get_smart_pwd(),
-        Commands::Time => modules::time::get_time(),
-        Commands::Git => modules::git::get_git_status(),
+    let segments: Vec<PromptSegment> = match &cli.command {
+        Commands::Os => vec![os::get_os_icon()],
+        Commands::Pwd => vec![pwd::get_smart_pwd()],
+        Commands::Time => vec![time::get_time()],
+        Commands::Git => git::get_git_status(),
         Commands::Cmd { last_status, last_command_executed } => {
-            modules::cmd::get_execution_info(*last_status, *last_command_executed)
+            vec![cmd::get_execution_info(*last_status, *last_command_executed)]
         }
     };
 
-    io::stdout().write_all(output.as_bytes())?;
+    let full_output: String = segments.into_iter()
+        .map(|segment| segment.format())
+        .collect::<Vec<String>>()
+        .join(" ");
+
+    io::stdout().write_all(full_output.as_bytes())?;
     Ok(())
 }
