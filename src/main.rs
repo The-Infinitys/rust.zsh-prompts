@@ -31,6 +31,26 @@ enum Commands {
     Git {
         #[arg(long)]
         color: Option<String>,
+        #[arg(long)]
+        git_icon_color: Option<String>,
+        #[arg(long)]
+        branch_color: Option<String>,
+        #[arg(long)]
+        staged_color: Option<String>,
+        #[arg(long)]
+        unstaged_color: Option<String>,
+        #[arg(long)]
+        untracked_color: Option<String>,
+        #[arg(long)]
+        conflict_color: Option<String>,
+        #[arg(long)]
+        stashed_color: Option<String>,
+        #[arg(long)]
+        clean_color: Option<String>,
+        #[arg(long)]
+        ahead_color: Option<String>,
+        #[arg(long)]
+        behind_color: Option<String>,
     },
     /// Get last command execution info
     Cmd {
@@ -59,9 +79,43 @@ fn main() -> io::Result<()> {
             let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
             vec![time::get_time(parsed_color)]
         },
-        Commands::Git { color } => {
-            let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
-            git::get_git_status(parsed_color)
+        Commands::Git {
+            color,
+            git_icon_color,
+            branch_color,
+            staged_color,
+            unstaged_color,
+            untracked_color,
+            conflict_color,
+            stashed_color,
+            clean_color,
+            ahead_color,
+            behind_color,
+        } => {
+            let parsed_default_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_git_icon_color = git_icon_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_branch_color = branch_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_staged_color = staged_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_unstaged_color = unstaged_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_untracked_color = untracked_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_conflict_color = conflict_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_stashed_color = stashed_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_clean_color = clean_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_ahead_color = ahead_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            let parsed_behind_color = behind_color.as_ref().and_then(|c| c.parse::<Color>().ok());
+            git::get_git_status(
+                parsed_default_color,
+                parsed_git_icon_color,
+                parsed_branch_color,
+                parsed_staged_color,
+                parsed_unstaged_color,
+                parsed_untracked_color,
+                parsed_conflict_color,
+                parsed_stashed_color,
+                parsed_clean_color,
+                parsed_ahead_color,
+                parsed_behind_color,
+            )
         },
         Commands::Cmd { last_status, last_command_executed, color } => {
             let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());

@@ -2,12 +2,27 @@ use std::process::Command;
 use regex::Regex;
 use crate::modules::{PromptSegment, Color};
 
-pub fn get_git_status(default_color_option: Option<Color>) -> Vec<PromptSegment> {
+pub fn get_git_status(
+    default_color_option: Option<Color>,
+    git_icon_color_option: Option<Color>,
+    branch_color_option: Option<Color>,
+    staged_color_option: Option<Color>,
+    unstaged_color_option: Option<Color>,
+    untracked_color_option: Option<Color>,
+    conflict_color_option: Option<Color>,
+    stashed_color_option: Option<Color>,
+    clean_color_option: Option<Color>,
+    ahead_color_option: Option<Color>,
+    behind_color_option: Option<Color>,
+) -> Vec<PromptSegment> {
     let mut segments: Vec<PromptSegment> = Vec::new();
 
     // Helper to get color, preferring user-provided, then fall back to specific, then White
-    let get_color = |specific_color: Color| {
-        default_color_option.clone().unwrap_or(specific_color).to_string()
+    let get_color = |specific_color: Color, override_color: Option<Color>| {
+        override_color
+            .or(default_color_option.clone())
+            .unwrap_or(specific_color)
+            .to_string()
     };
 
 
@@ -40,7 +55,7 @@ pub fn get_git_status(default_color_option: Option<Color>) -> Vec<PromptSegment>
     } else {
         "󰊢" // Generic remote icon (white)
     };
-    segments.push(PromptSegment::new_with_color(remote_icon.to_string(), &get_color(Color::Blue)));
+    segments.push(PromptSegment::new_with_color(remote_icon.to_string(), &get_color(Color::Blue, git_icon_color_option.clone())));
 
     // Branch name
     let branch_output = Command::new("git")
@@ -57,8 +72,8 @@ pub fn get_git_status(default_color_option: Option<Color>) -> Vec<PromptSegment>
         .map(|s| s.trim().to_string())
         .unwrap_or_else(|| "unknown".to_string());
     
-    segments.push(PromptSegment::new_with_color("".to_string(), &get_color(Color::White))); // Git icon (white)
-    segments.push(PromptSegment::new_with_color(branch_output, &get_color(Color::Yellow))); // Branch name (yellow)
+    segments.push(PromptSegment::new_with_color("".to_string(), &get_color(Color::White, git_icon_color_option.clone()))); // Git icon (white)
+    segments.push(PromptSegment::new_with_color(branch_output, &get_color(Color::Yellow, branch_color_option.clone()))); // Branch name (yellow)
 
     // Git status --porcelain=v2 --branch
     let status_output = Command::new("git")
@@ -112,19 +127,19 @@ pub fn get_git_status(default_color_option: Option<Color>) -> Vec<PromptSegment>
         .unwrap_or(false);
 
     // Assemble status icons
-    if staged_changes > 0 { segments.push(PromptSegment::new_with_color(format!("+{}", staged_changes), &get_color(Color::Green))); }
-    if unstaged_changes > 0 { segments.push(PromptSegment::new_with_color(format!("!{}", unstaged_changes), &get_color(Color::Red))); }
-    if untracked_files > 0 { segments.push(PromptSegment::new_with_color(format!("?{}", untracked_files), &get_color(Color::Cyan))); }
-    if conflicts > 0 { segments.push(PromptSegment::new_with_color(format!("{}", conflicts), &get_color(Color::Magenta))); }
-    if stashed { segments.push(PromptSegment::new_with_color("".to_string(), &get_color(Color::Blue))); }
+    if staged_changes > 0 { segments.push(PromptSegment::new_with_color(format!("+{}", staged_changes), &get_color(Color::Green, staged_color_option.clone()))); }
+    if unstaged_changes > 0 { segments.push(PromptSegment::new_with_color(format!("!{}", unstaged_changes), &get_color(Color::Red, unstaged_color_option.clone()))); }
+    if untracked_files > 0 { segments.push(PromptSegment::new_with_color(format!("?{}", untracked_files), &get_color(Color::Cyan, untracked_color_option.clone()))); }
+    if conflicts > 0 { segments.push(PromptSegment::new_with_color(format!("{}", conflicts), &get_color(Color::Magenta, conflict_color_option.clone()))); }
+    if stashed { segments.push(PromptSegment::new_with_color("".to_string(), &get_color(Color::Blue, stashed_color_option.clone()))); }
 
     if staged_changes == 0 && unstaged_changes == 0 && untracked_files == 0 && conflicts == 0 && !stashed {
-        segments.push(PromptSegment::new_with_color("".to_string(), &get_color(Color::Green))); // Clean icon
+        segments.push(PromptSegment::new_with_color("".to_string(), &get_color(Color::Green, clean_color_option.clone()))); // Clean icon
     }
 
     // Assemble push/pull status
-    if ahead > 0 { segments.push(PromptSegment::new_with_color(format!("↑{}", ahead), &get_color(Color::White))); }
-    if behind > 0 { segments.push(PromptSegment::new_with_color(format!("↓{}", behind), &get_color(Color::Red))); }
+    if ahead > 0 { segments.push(PromptSegment::new_with_color(format!("↑{}", ahead), &get_color(Color::White, ahead_color_option.clone()))); }
+    if behind > 0 { segments.push(PromptSegment::new_with_color(format!("↓{}", behind), &get_color(Color::Red, behind_color_option.clone()))); }
 
     segments
 }
