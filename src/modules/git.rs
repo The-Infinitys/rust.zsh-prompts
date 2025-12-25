@@ -107,12 +107,11 @@ pub fn get_git_status(
     for line in status_output.lines() {
         if line.starts_with("# branch.ab") {
             let re = Regex::new(r"\+([0-9]+) -([0-9]+)").unwrap();
-            if let Some(captures) = re.captures(line) {
-                if let (Some(a), Some(b)) = (captures.get(1), captures.get(2)) {
+            if let Some(captures) = re.captures(line)
+                && let (Some(a), Some(b)) = (captures.get(1), captures.get(2)) {
                     ahead = a.as_str().parse().unwrap_or(0);
                     behind = b.as_str().parse().unwrap_or(0);
                 }
-            }
         } else if line.starts_with("1") || line.starts_with("2") {
             // Normal, Renamed, Copied
             let x = line.chars().nth(2).unwrap_or('.'); // Staged
