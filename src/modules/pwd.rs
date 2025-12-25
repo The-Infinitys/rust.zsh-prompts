@@ -1,11 +1,11 @@
 use std::env;
 use std::fs;
-use crate::modules::PromptSegment;
+use crate::modules::{PromptSegment, Color};
 
-pub fn get_smart_pwd() -> PromptSegment {
+pub fn get_smart_pwd(color: Option<Color>) -> PromptSegment {
     let current_dir = match env::current_dir() {
         Ok(path) => path,
-        Err(_) => return PromptSegment::new_with_color(" Error".to_string(), "red".to_string()),
+        Err(_) => return PromptSegment::new_with_color(" Error".to_string(), &Color::Red.to_string()),
     };
 
     let home_dir = dirs::home_dir();
@@ -46,7 +46,7 @@ pub fn get_smart_pwd() -> PromptSegment {
     }
 
     // Basic path truncation: if too long, show start...end
-    let max_len = 30;
+    let max_len = 100;
     if display_path.len() > max_len {
         let path_parts: Vec<&str> = display_path.split('/').collect();
         if path_parts.len() > 1 {
@@ -64,5 +64,5 @@ pub fn get_smart_pwd() -> PromptSegment {
         }
     }
 
-    PromptSegment::new(format!("{} {}", icon, display_path))
+    PromptSegment::new_with_color(format!("{} {}", icon, display_path), &color.unwrap_or(Color::Cyan).to_string())
 }

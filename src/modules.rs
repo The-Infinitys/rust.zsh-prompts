@@ -4,10 +4,39 @@ pub mod time;
 pub mod git;
 pub mod cmd;
 
+// 色の選択肢を定義するenum
+#[derive(Debug, PartialEq)]
+pub enum Color {
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+    Black,
+    // 必要に応じて他の色を追加
+}
+
+impl Color {
+    pub fn as_ansi_code(&self) -> &'static str {
+        match self {
+            Color::Red => "31",
+            Color::Green => "32",
+            Color::Yellow => "33",
+            Color::Blue => "34",
+            Color::Magenta => "35",
+            Color::Cyan => "36",
+            Color::White => "37",
+            Color::Black => "30",
+        }
+    }
+}
+
 // 新しい構造体を追加
 pub struct PromptSegment {
     pub content: String,
-    pub color: Option<String>, // 例: "red", "green", "blue" などの文字列
+    pub color: Option<Color>,
 }
 
 impl PromptSegment {
@@ -15,26 +44,14 @@ impl PromptSegment {
         Self { content, color: None }
     }
 
-    pub fn new_with_color(content: String, color: String) -> Self {
+    pub fn new_with_color(content: String, color: Color) -> Self {
         Self { content, color: Some(color) }
     }
 
     // 色を適用した文字列を生成するヘルパーメソッド
     pub fn format(&self) -> String {
         if let Some(color) = &self.color {
-            // ここでANSIエスケープコードを使用して色を適用
-            // 例: \x1b[31m (赤色)
-            match color.as_str() {
-                "red" => format!("\x1b[31m{}\x1b[0m", self.content),
-                "green" => format!("\x1b[32m{}\x1b[0m", self.content),
-                "yellow" => format!("\x1b[33m{}\x1b[0m", self.content),
-                "blue" => format!("\x1b[34m{}\x1b[0m", self.content),
-                "magenta" => format!("\x1b[35m{}\x1b[0m", self.content),
-                "cyan" => format!("\x1b[36m{}\x1b[0m", self.content),
-                "white" => format!("\x1b[37m{}\x1b[0m", self.content),
-                // 他の色やデフォルトの色なしの場合
-                _ => self.content.clone(),
-            }
+            format!("\x1b[{}m{}\x1b[0m", color.as_ansi_code(), self.content)
         } else {
             self.content.clone()
         }

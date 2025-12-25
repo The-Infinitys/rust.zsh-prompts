@@ -1,7 +1,7 @@
 use os_info::Type;
-use crate::modules::PromptSegment;
+use crate::modules::{PromptSegment, Color};
 
-pub fn get_os_icon() -> PromptSegment {
+pub fn get_os_icon(color: Option<Color>) -> PromptSegment {
     let info = os_info::get();
     let icon = match info.os_type() {
         Type::Macos => "".to_string(), // Apple icon
@@ -21,7 +21,7 @@ pub fn get_os_icon() -> PromptSegment {
         }
         _ => "󰀵".to_string(), // Default icon
     };
-    PromptSegment::new(icon)
+    PromptSegment::new_with_color(icon, &color.unwrap_or(Color::White).to_string())
 }
 
 fn is_wsl() -> bool {
