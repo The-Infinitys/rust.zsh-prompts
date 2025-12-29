@@ -11,14 +11,8 @@ pub fn get_os_icon(color: Option<Color>) -> PromptSegment {
         Type::Arch => "󰣇".to_string(),                  // Arch
         Type::Debian => "".to_string(),                // Debian
         Type::Windows => "".to_string(),               // Windows
-        Type::Linux => "".to_string(),                 // WSL (Linux kernel, but Windows Subsystem) or Generic Linux
-        _ => "󰀵".to_string(), // Default icon
+        Type::Linux => "".to_string(), // WSL (Linux kernel, but Windows Subsystem) or Generic Linux
+        _ => "󰀵".to_string(),           // Default icon
     };
     PromptSegment::new_with_color(icon, &color.unwrap_or(Color::White).to_string())
-}
-
-fn is_wsl() -> bool {
-    std::fs::read_to_string("/proc/version")
-        .map(|s| s.to_lowercase().contains("microsoft") || s.to_lowercase().contains("wsl"))
-        .unwrap_or(false)
 }

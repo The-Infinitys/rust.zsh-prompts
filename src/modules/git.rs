@@ -1,9 +1,9 @@
-use serde::{Serialize, Deserialize};
 use crate::modules::{Color, PromptSegment};
 use clap::Args;
 use git2::{Repository, Status, StatusOptions};
 use lazy_static::lazy_static;
 use regex::Regex;
+use serde::{Deserialize, Serialize};
 lazy_static! {
     // URLからホストを判定するための正規表現（必要に応じて）
     static ref RE_GITHUB: Regex = Regex::new(r"github\.com").unwrap();
