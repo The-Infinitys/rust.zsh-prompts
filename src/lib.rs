@@ -52,17 +52,17 @@ impl Commands {
                 vec![time::get_time(parsed_color)]
             }
             Self::Git { options } => {
-                let parsed_default_color = options.default_color_option.clone();
-                let parsed_git_icon_color = options.git_icon_color_option.clone();
-                let parsed_branch_color = options.branch_color_option.clone();
-                let parsed_staged_color = options.staged_color_option.clone();
-                let parsed_unstaged_color = options.unstaged_color_option.clone();
-                let parsed_untracked_color = options.untracked_color_option.clone();
-                let parsed_conflict_color = options.conflict_color_option.clone();
-                let parsed_stashed_color = options.stashed_color_option.clone();
-                let parsed_clean_color = options.clean_color_option.clone();
-                let parsed_ahead_color = options.ahead_color_option.clone();
-                let parsed_behind_color = options.behind_color_option.clone();
+                let parsed_default_color = options.default_color_option;
+                let parsed_git_icon_color = options.git_icon_color_option;
+                let parsed_branch_color = options.branch_color_option;
+                let parsed_staged_color = options.staged_color_option;
+                let parsed_unstaged_color = options.unstaged_color_option;
+                let parsed_untracked_color = options.untracked_color_option;
+                let parsed_conflict_color = options.conflict_color_option;
+                let parsed_stashed_color = options.stashed_color_option;
+                let parsed_clean_color = options.clean_color_option;
+                let parsed_ahead_color = options.ahead_color_option;
+                let parsed_behind_color = options.behind_color_option;
                 git::get_git_status(GitStatusOptions {
                     default_color_option: parsed_default_color,
                     git_icon_color_option: parsed_git_icon_color,

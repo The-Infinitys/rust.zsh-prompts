@@ -29,7 +29,7 @@ pub fn get_git_status(options: GitStatusOptions) -> Vec<PromptSegment> {
 
     let get_color = |specific_color: Color, override_color: Option<Color>| {
         override_color
-            .or(options.default_color_option.clone())
+            .or(options.default_color_option)
             .unwrap_or(specific_color)
             .to_string()
     };
@@ -55,7 +55,7 @@ pub fn get_git_status(options: GitStatusOptions) -> Vec<PromptSegment> {
     };
     segments.push(PromptSegment::new_with_color(
         remote_icon.to_string(),
-        &get_color(Color::Blue, options.git_icon_color_option.clone()),
+        &get_color(Color::Blue, options.git_icon_color_option),
     ));
 
     // --- Branch / Detached HEAD の取得 ---
@@ -83,7 +83,7 @@ pub fn get_git_status(options: GitStatusOptions) -> Vec<PromptSegment> {
 
     segments.push(PromptSegment::new_with_color(
         "".to_string(),
-        &get_color(Color::White, options.git_icon_color_option.clone()),
+        &get_color(Color::White, options.git_icon_color_option),
     ));
     segments.push(PromptSegment::new_with_color(
         branch_display,
@@ -93,7 +93,7 @@ pub fn get_git_status(options: GitStatusOptions) -> Vec<PromptSegment> {
             } else {
                 Color::Yellow
             },
-            options.branch_color_option.clone(),
+            options.branch_color_option,
         ),
     ));
 
