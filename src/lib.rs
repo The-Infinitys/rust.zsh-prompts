@@ -45,7 +45,7 @@ impl Commands {
             }
             Self::Pwd { color } => {
                 let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
-                vec![pwd::get_smart_pwd(parsed_color)]
+                pwd::get_smart_pwd(parsed_color)
             }
             Self::Time { color } => {
                 let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());

@@ -80,5 +80,8 @@ pub fn get_os_icon(color: Option<Color>) -> PromptSegment {
         _ => infinity,
     };
 
-    PromptSegment::new_with_color(icon.to_string(), &color.unwrap_or(Color::White).to_string())
+    PromptSegment::new_with_color(
+        icon.to_string() + " ",
+        &color.unwrap_or(Color::White).to_string(),
+    )
 }

@@ -2,11 +2,14 @@ use crate::modules::{Color, PromptSegment};
 use std::env;
 use std::fs;
 
-pub fn get_smart_pwd(color: Option<Color>) -> PromptSegment {
+pub fn get_smart_pwd(color: Option<Color>) -> Vec<PromptSegment> {
     let current_dir = match env::current_dir() {
         Ok(path) => path,
         Err(_) => {
-            return PromptSegment::new_with_color(" Error".to_string(), &Color::Red.to_string());
+            return vec![
+                PromptSegment::new_with_color(" ".to_string(), &Color::Red.to_string()),
+                PromptSegment::new_with_color("Error".to_string(), &Color::Red.to_string()),
+            ];
         }
     };
 
@@ -66,8 +69,11 @@ pub fn get_smart_pwd(color: Option<Color>) -> PromptSegment {
         }
     }
 
-    PromptSegment::new_with_color(
-        format!("{} {}", icon, display_path),
-        &color.unwrap_or(Color::Cyan).to_string(),
-    )
+    vec![
+        PromptSegment::new_with_color(icon.to_string(), &color.unwrap_or(Color::Cyan).to_string()),
+        PromptSegment::new_with_color(
+            display_path.to_string(),
+            &color.unwrap_or(Color::Cyan).to_string(),
+        ),
+    ]
 }
