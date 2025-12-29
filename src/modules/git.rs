@@ -11,16 +11,27 @@ lazy_static! {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, Args)]
 pub struct GitStatusOptions {
+    #[arg(long)]
     pub default_color_option: Option<Color>,
+    #[arg(long)]
     pub git_icon_color_option: Option<Color>,
+    #[arg(long)]
     pub branch_color_option: Option<Color>,
+    #[arg(long)]
     pub staged_color_option: Option<Color>,
+    #[arg(long)]
     pub unstaged_color_option: Option<Color>,
+    #[arg(long)]
     pub untracked_color_option: Option<Color>,
+    #[arg(long)]
     pub conflict_color_option: Option<Color>,
+    #[arg(long)]
     pub stashed_color_option: Option<Color>,
+    #[arg(long)]
     pub clean_color_option: Option<Color>,
+    #[arg(long)]
     pub ahead_color_option: Option<Color>,
+    #[arg(long)]
     pub behind_color_option: Option<Color>,
 }
 
