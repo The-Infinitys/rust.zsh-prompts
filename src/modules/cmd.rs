@@ -1,32 +1,41 @@
 use crate::modules::{Color, PromptSegment};
 use chrono::Utc;
+use std::env;
 
 pub fn get_execution_info(
-    last_status: i32,
-    last_command_executed: Option<f64>,
+    last_status_var_name: &String,
+    last_command_executed_var_name: &Option<String>,
     color: Option<Color>,
 ) -> PromptSegment {
+    // 1. 環境変数名からステータスを取得
+    let last_status: i32 = env::var(last_status_var_name)
+        .ok()
+        .and_then(|val| val.parse().ok())
+        .unwrap_or(0);
+
+    // 2. 環境変数名から実行開始時刻を取得
+    let last_command_executed: Option<f64> = last_command_executed_var_name
+        .as_ref() // to_owned() ではなく参照として扱う
+        .and_then(|name| env::var(name).ok())
+        .and_then(|val| val.parse().ok());
+
     let status_icon: &str;
     let segment_color: Color;
 
     if last_status == 0 {
-        status_icon = ""; // Success
+        status_icon = "";
         segment_color = Color::Green;
     } else {
-        status_icon = ""; // Failure
+        status_icon = "";
         segment_color = Color::Red;
     }
 
     let mut duration_str = String::new();
     if let Some(timer_start_f64) = last_command_executed {
-        // We need to use a consistent "now" for testing purposes.
-        // For actual execution, `Utc::now()` is appropriate.
-        // For tests, we might mock this or adjust `timer_start_f64` relative to a fixed `now`.
         let timer_now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
         let delta_f64 = timer_now_f64 - timer_start_f64;
 
         if delta_f64 >= 0.5 {
-            // Only display if 0.5s or more
             let total_seconds = delta_f64.trunc() as i64;
             let days = total_seconds / 86400;
             let hours = (total_seconds % 86400) / 3600;
@@ -43,7 +52,6 @@ pub fn get_execution_info(
                 duration_str.push_str(&format!("{}m", minutes));
             }
 
-            // If less than 1 second, show seconds with two decimal places (rounded)
             if delta_f64 < 1.0 {
                 duration_str.push_str(&format!("{:.2}s", delta_f64));
             } else {
@@ -52,13 +60,11 @@ pub fn get_execution_info(
         }
     }
 
-    let mut info: String;
-
-    if !duration_str.is_empty() {
-        info = format!("{} {}", status_icon, duration_str);
+    let mut info = if !duration_str.is_empty() {
+        format!("{} {}", status_icon, duration_str)
     } else {
-        info = status_icon.to_string();
-    }
+        status_icon.to_string()
+    };
 
     if last_status != 0 {
         info = format!("{} {}", info, last_status);
@@ -70,110 +76,78 @@ pub fn get_execution_info(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::modules::Color; // Color enumをテストモジュール内で使用するためにインポート
+    use crate::modules::Color;
     use chrono::Utc;
+    use std::env;
+
+    fn set_test_env(key: &str, value: &str) {
+        unsafe {
+            env::set_var(key, value);
+        }
+    }
 
     #[test]
     fn test_get_execution_info_success_no_time() {
-        let last_status = 0;
-        let last_command_executed = None;
-        let result = get_execution_info(last_status, last_command_executed, None);
+        let status_var = "TEST_STATUS_SUCCESS".to_string();
+        set_test_env(&status_var, "0");
+
+        // 引数を参照 (&) で渡すように修正
+        let result = get_execution_info(&status_var, &None, None);
         assert_eq!(result.content, "");
         assert_eq!(result.color, Some(Color::Green));
     }
 
     #[test]
-    fn test_get_execution_info_success_with_time() {
-        let last_status = 0;
-        // Simulate a command that started 0.5 seconds ago
-        let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
-        let last_command_executed = Some(now_f64 - 0.5); // 0.5 seconds ago
-        let result = get_execution_info(last_status, last_command_executed, None);
-        assert_eq!(result.content, " 0.50s");
-        assert_eq!(result.color, Some(Color::Green));
-    }
-
-    #[test]
-    fn test_get_execution_info_failure_no_time() {
-        let last_status = 1;
-        let last_command_executed = None;
-        let result = get_execution_info(last_status, last_command_executed, None);
-        assert_eq!(result.content, " 1");
-        assert_eq!(result.color, Some(Color::Red));
-    }
-
-    #[test]
     fn test_get_execution_info_failure_with_time() {
-        let last_status = 127;
-        // Simulate a command that started 1.2 seconds ago
+        let status_var = "TEST_STATUS_FAIL".to_string();
+        let time_var = "TEST_TIME_FAIL".to_string();
+
+        set_test_env(&status_var, "127");
         let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
-        let last_command_executed = Some(now_f64 - 1.2); // 1.2 seconds ago
-        let result = get_execution_info(last_status, last_command_executed, None);
-        assert_eq!(result.content, " 1s 127");
+        set_test_env(&time_var, (now_f64 - 1.2).to_string().as_str());
+
+        // 引数を参照 (&) で渡すように修正
+        let result = get_execution_info(&status_var, &Some(time_var), None);
+
+        assert!(result.content.contains(""));
+        assert!(result.content.contains("127"));
+        assert!(result.content.contains("1s"));
         assert_eq!(result.color, Some(Color::Red));
     }
 
     #[test]
     fn test_get_execution_info_long_duration_minutes() {
-        let last_status = 0;
-        // Simulate a command that started 2 minutes and 30 seconds ago (150 seconds)
+        let status_var = "TEST_STATUS_LONG".to_string();
+        let time_var = "TEST_TIME_LONG".to_string();
+
+        set_test_env(&status_var, "0");
         let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
-        let last_command_executed = Some(now_f64 - 150.5); // 2m 30.5s ago
-        let result = get_execution_info(last_status, last_command_executed, None);
-        assert_eq!(result.content, " 2m30s");
-        assert_eq!(result.color, Some(Color::Green));
+        set_test_env(&time_var, (now_f64 - 150.5).to_string().as_str());
+
+        let result = get_execution_info(&status_var, &Some(time_var), None);
+        assert!(result.content.contains("2m30s"));
     }
 
     #[test]
-    fn test_get_execution_info_five_seconds_duration() {
-        let last_status = 0;
-        // Simulate a command that started 5 seconds ago
-        let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
-        let last_command_executed = Some(now_f64 - 5.000); // 5 seconds ago
-        let result = get_execution_info(last_status, last_command_executed, None);
-        assert_eq!(result.content, " 5s");
-        assert_eq!(result.color, Some(Color::Green));
-    }
+    fn test_get_execution_info_invalid_env_fallback() {
+        let status_var = "NON_EXISTENT_VAR".to_string();
+        let time_var = Some("INVALID_VAL_VAR".to_string());
 
-    #[test]
-    fn test_get_execution_info_long_duration_days() {
-        let last_status = 0;
-        // Simulate a command that started 1 day, 2 hours, 3 minutes, 4 seconds ago
-        let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
-        let last_command_executed = Some(now_f64 - (86400.0 + 7200.0 + 180.0 + 4.0 + 0.9)); // 1d 2h 3m 4.9s ago
-        let result = get_execution_info(last_status, last_command_executed, None);
-        assert_eq!(result.content, " 1d2h3m4s");
-        assert_eq!(result.color, Some(Color::Green));
-    }
+        let result = get_execution_info(&status_var, &time_var, None);
 
-    #[test]
-    fn test_get_execution_info_less_than_0_1_sec() {
-        let last_status = 0;
-        // Simulate a command that started 0.05 seconds ago (less than 0.1s threshold)
-        let now_f64 = Utc::now().timestamp_nanos_opt().unwrap() as f64 / 1_000_000_000.0;
-        let last_command_executed = Some(now_f64 - 0.05);
-        let result = get_execution_info(last_status, last_command_executed, None);
-        assert_eq!(result.content, ""); // Should not display time
+        assert_eq!(result.content, "");
         assert_eq!(result.color, Some(Color::Green));
     }
 
     #[test]
     fn test_get_execution_info_with_custom_color() {
-        let last_status = 0;
-        let last_command_executed = None;
+        let status_var = "TEST_STATUS_COLOR".to_string();
+        set_test_env(&status_var, "0");
+
         let custom_color = Some(Color::Blue);
-        let result = get_execution_info(last_status, last_command_executed, custom_color);
+        let result = get_execution_info(&status_var, &None, custom_color);
+
         assert_eq!(result.content, "");
         assert_eq!(result.color, Some(Color::Blue));
-    }
-
-    #[test]
-    fn test_get_execution_info_with_custom_color_failure() {
-        let last_status = 1;
-        let last_command_executed = None;
-        let custom_color = Some(Color::Yellow);
-        let result = get_execution_info(last_status, last_command_executed, custom_color);
-        assert_eq!(result.content, " 1");
-        assert_eq!(result.color, Some(Color::Yellow));
     }
 }

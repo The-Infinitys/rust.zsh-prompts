@@ -29,9 +29,9 @@ pub enum Commands {
     /// Get last command execution info
     Cmd {
         #[arg(long)]
-        last_status: i32,
+        last_status: String,
         #[arg(long)]
-        last_command_executed: Option<f64>,
+        last_command_executed: Option<String>,
         #[arg(long)]
         color: Option<String>,
     },
@@ -84,8 +84,8 @@ impl Commands {
             } => {
                 let parsed_color = color.as_ref().and_then(|c| c.parse::<Color>().ok());
                 vec![cmd::get_execution_info(
-                    *last_status,
-                    *last_command_executed,
+                    last_status,
+                    last_command_executed,
                     parsed_color,
                 )]
             }
