@@ -1212,4 +1212,5 @@ dependencies = [
  "lazy_static",
  "os_info",
  "regex",
+ "serde",
 ]

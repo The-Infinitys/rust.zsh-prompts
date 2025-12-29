@@ -11,4 +11,5 @@ regex = "1.12.2"
 os_info = "3.14.0"
 git2 = "0.20.3"
 lazy_static = "1.5.0"
+serde = "1.0.228"
 

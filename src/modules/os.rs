@@ -11,14 +11,7 @@ pub fn get_os_icon(color: Option<Color>) -> PromptSegment {
         Type::Arch => "󰣇".to_string(),                  // Arch
         Type::Debian => "".to_string(),                // Debian
         Type::Windows => "".to_string(),               // Windows
-        Type::Linux => {
-            // Check for WSL within Linux, similar to os.sh
-            if is_wsl() {
-                "".to_string() // WSL (Linux kernel, but Windows Subsystem)
-            } else {
-                "".to_string() // Generic Linux
-            }
-        }
+        Type::Linux => "".to_string(),                 // WSL (Linux kernel, but Windows Subsystem) or Generic Linux
         _ => "󰀵".to_string(), // Default icon
     };
     PromptSegment::new_with_color(icon, &color.unwrap_or(Color::White).to_string())

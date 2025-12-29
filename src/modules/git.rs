@@ -1,32 +1,35 @@
+use serde::{Serialize, Deserialize};
 use crate::modules::{Color, PromptSegment};
+use clap::Args;
 use git2::{Repository, Status, StatusOptions};
 use lazy_static::lazy_static;
 use regex::Regex;
-
 lazy_static! {
     // URLからホストを判定するための正規表現（必要に応じて）
     static ref RE_GITHUB: Regex = Regex::new(r"github\.com").unwrap();
     static ref RE_GITLAB: Regex = Regex::new(r"gitlab\.com").unwrap();
 }
+#[derive(Debug, Clone, Serialize, Deserialize, Args)]
+pub struct GitStatusOptions {
+    pub default_color_option: Option<Color>,
+    pub git_icon_color_option: Option<Color>,
+    pub branch_color_option: Option<Color>,
+    pub staged_color_option: Option<Color>,
+    pub unstaged_color_option: Option<Color>,
+    pub untracked_color_option: Option<Color>,
+    pub conflict_color_option: Option<Color>,
+    pub stashed_color_option: Option<Color>,
+    pub clean_color_option: Option<Color>,
+    pub ahead_color_option: Option<Color>,
+    pub behind_color_option: Option<Color>,
+}
 
-pub fn get_git_status(
-    default_color_option: Option<Color>,
-    git_icon_color_option: Option<Color>,
-    branch_color_option: Option<Color>,
-    staged_color_option: Option<Color>,
-    unstaged_color_option: Option<Color>,
-    untracked_color_option: Option<Color>,
-    conflict_color_option: Option<Color>,
-    stashed_color_option: Option<Color>,
-    clean_color_option: Option<Color>,
-    ahead_color_option: Option<Color>,
-    behind_color_option: Option<Color>,
-) -> Vec<PromptSegment> {
+pub fn get_git_status(options: GitStatusOptions) -> Vec<PromptSegment> {
     let mut segments: Vec<PromptSegment> = Vec::new();
 
     let get_color = |specific_color: Color, override_color: Option<Color>| {
         override_color
-            .or(default_color_option.clone())
+            .or(options.default_color_option.clone())
             .unwrap_or(specific_color)
             .to_string()
     };
@@ -52,7 +55,7 @@ pub fn get_git_status(
     };
     segments.push(PromptSegment::new_with_color(
         remote_icon.to_string(),
-        &get_color(Color::Blue, git_icon_color_option.clone()),
+        &get_color(Color::Blue, options.git_icon_color_option.clone()),
     ));
 
     // --- Branch / Detached HEAD の取得 ---
@@ -80,7 +83,7 @@ pub fn get_git_status(
 
     segments.push(PromptSegment::new_with_color(
         "".to_string(),
-        &get_color(Color::White, git_icon_color_option.clone()),
+        &get_color(Color::White, options.git_icon_color_option.clone()),
     ));
     segments.push(PromptSegment::new_with_color(
         branch_display,
@@ -90,7 +93,7 @@ pub fn get_git_status(
             } else {
                 Color::Yellow
             },
-            branch_color_option.clone(),
+            options.branch_color_option.clone(),
         ),
     ));
 
@@ -134,18 +137,14 @@ pub fn get_git_status(
 
     // --- Ahead / Behind の取得 ---
     let (mut ahead, mut behind) = (0, 0);
-    if let Ok(head) = repo.head() {
-        if let Ok(local_oid) = head.target().ok_or(()) {
-            if let Ok(upstream_branch) = repo.branch_upstream_name(head.name().unwrap_or("")) {
-                if let Ok(upstream_oid) = repo.refname_to_id(upstream_branch.as_str().unwrap_or(""))
-                {
-                    if let Ok((a, b)) = repo.graph_ahead_behind(local_oid, upstream_oid) {
-                        ahead = a;
-                        behind = b;
-                    }
-                }
-            }
-        }
+    if let Ok(head) = repo.head()
+        && let Some(local_oid) = head.target()
+        && let Ok(upstream_branch) = repo.branch_upstream_name(head.name().unwrap_or(""))
+        && let Ok(upstream_oid) = repo.refname_to_id(upstream_branch.as_str().unwrap_or(""))
+        && let Ok((a, b)) = repo.graph_ahead_behind(local_oid, upstream_oid)
+    {
+        ahead = a;
+        behind = b;
     }
 
     // --- Stash の確認 ---
@@ -159,49 +158,49 @@ pub fn get_git_status(
     if staged > 0 {
         segments.push(PromptSegment::new_with_color(
             format!("+{}", staged),
-            &get_color(Color::Green, staged_color_option),
+            &get_color(Color::Green, options.staged_color_option),
         ));
     }
     if unstaged > 0 {
         segments.push(PromptSegment::new_with_color(
             format!("!{}", unstaged),
-            &get_color(Color::Red, unstaged_color_option),
+            &get_color(Color::Red, options.unstaged_color_option),
         ));
     }
     if untracked > 0 {
         segments.push(PromptSegment::new_with_color(
             format!("?{}", untracked),
-            &get_color(Color::Cyan, untracked_color_option),
+            &get_color(Color::Cyan, options.untracked_color_option),
         ));
     }
     if conflicts > 0 {
         segments.push(PromptSegment::new_with_color(
             format!("{}", conflicts),
-            &get_color(Color::Magenta, conflict_color_option),
+            &get_color(Color::Magenta, options.conflict_color_option),
         ));
     }
     if has_stash {
         segments.push(PromptSegment::new_with_color(
             "".to_string(),
-            &get_color(Color::Blue, stashed_color_option),
+            &get_color(Color::Blue, options.stashed_color_option),
         ));
     }
     if staged == 0 && unstaged == 0 && untracked == 0 && conflicts == 0 && !has_stash {
         segments.push(PromptSegment::new_with_color(
             "".to_string(),
-            &get_color(Color::Green, clean_color_option),
+            &get_color(Color::Green, options.clean_color_option),
         ));
     }
     if ahead > 0 {
         segments.push(PromptSegment::new_with_color(
             format!("↑{}", ahead),
-            &get_color(Color::White, ahead_color_option),
+            &get_color(Color::White, options.ahead_color_option),
         ));
     }
     if behind > 0 {
         segments.push(PromptSegment::new_with_color(
             format!("↓{}", behind),
-            &get_color(Color::Red, behind_color_option),
+            &get_color(Color::Red, options.behind_color_option),
         ));
     }
 

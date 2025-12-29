@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 pub mod cmd;
 pub mod git;
 pub mod os;
@@ -5,7 +7,7 @@ pub mod pwd;
 pub mod time;
 
 // 色の選択肢を定義するenum
-#[derive(Debug, PartialEq, Eq, Hash, Clone)] // Hash, Cloneを追加
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize, Copy)] // Hash, Cloneを追加
 pub enum Color {
     Red,
     Green,
