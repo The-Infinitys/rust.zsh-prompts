@@ -1,6 +1,13 @@
 use crate::modules::{Color, PromptSegment};
+use git2::{Repository, Status, StatusOptions};
+use lazy_static::lazy_static;
 use regex::Regex;
-use std::process::Command;
+
+lazy_static! {
+    // URLからホストを判定するための正規表現（必要に応じて）
+    static ref RE_GITHUB: Regex = Regex::new(r"github\.com").unwrap();
+    static ref RE_GITLAB: Regex = Regex::new(r"gitlab\.com").unwrap();
+}
 
 pub fn get_git_status(
     default_color_option: Option<Color>,
@@ -17,7 +24,6 @@ pub fn get_git_status(
 ) -> Vec<PromptSegment> {
     let mut segments: Vec<PromptSegment> = Vec::new();
 
-    // Helper to get color, preferring user-provided, then fall back to specific, then White
     let get_color = |specific_color: Color, override_color: Option<Color>| {
         override_color
             .or(default_color_option.clone())
@@ -25,177 +31,177 @@ pub fn get_git_status(
             .to_string()
     };
 
-    // 1. Check if inside Git repository
-    let is_git_repo = Command::new("git")
-        .arg("rev-parse")
-        .arg("--is-inside-work-tree")
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false);
+    // 1. カレントディレクトリからリポジトリを探索
+    let mut repo = match Repository::discover(".") {
+        Ok(r) => r,
+        Err(_) => return segments, // Gitリポジトリではない
+    };
 
-    if !is_git_repo {
-        return segments; // Not a git repository, return empty vector
-    }
-
-    // Remote icon
-    let remote_url_output = Command::new("git")
-        .arg("remote")
-        .arg("get-url")
-        .arg("origin")
-        .output()
-        .ok()
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .unwrap_or_default();
-
-    let remote_icon = if remote_url_output.contains("github.com") {
-        "" // GitHub icon (blue)
-    } else if remote_url_output.contains("gitlab.com") {
-        "" // GitLab icon (orange)
+    // --- Remote Icon の取得 ---
+    let remote_icon = if let Ok(remote) = repo.find_remote("origin") {
+        let url = remote.url().unwrap_or("");
+        if RE_GITHUB.is_match(url) {
+            ""
+        } else if RE_GITLAB.is_match(url) {
+            ""
+        } else {
+            "󰊢"
+        }
     } else {
-        "󰊢" // Generic remote icon (white)
+        "󰊢"
     };
     segments.push(PromptSegment::new_with_color(
         remote_icon.to_string(),
         &get_color(Color::Blue, git_icon_color_option.clone()),
     ));
 
-    // Branch name
-    let branch_output = Command::new("git")
-        .arg("symbolic-ref")
-        .arg("--short")
-        .arg("HEAD")
-        .output()
-        .or_else(|_| {
-            // Fallback to short hash if not on a branch
-            Command::new("git")
-                .arg("rev-parse")
-                .arg("--short")
-                .arg("HEAD")
-                .output()
-        })
-        .ok()
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
+    // --- Branch / Detached HEAD の取得 ---
+    let branch_display;
+    let mut is_detached = false;
+
+    if let Ok(head) = repo.head() {
+        if head.is_branch() {
+            // 通常のブランチ
+            branch_display = head.shorthand().unwrap_or("unknown").to_string();
+        } else {
+            // 特定のブランチにいない場合（Detached HEAD）
+            is_detached = true;
+            branch_display = format!(
+                ":{}",
+                &head
+                    .target()
+                    .map(|oid| oid.to_string()[..7].to_string())
+                    .unwrap_or_else(|| "unknown".into())
+            );
+        }
+    } else {
+        branch_display = "empty".to_string();
+    }
 
     segments.push(PromptSegment::new_with_color(
         "".to_string(),
         &get_color(Color::White, git_icon_color_option.clone()),
-    )); // Git icon (white)
+    ));
     segments.push(PromptSegment::new_with_color(
-        branch_output,
-        &get_color(Color::Yellow, branch_color_option.clone()),
-    )); // Branch name (yellow)
+        branch_display,
+        &get_color(
+            if is_detached {
+                Color::Red
+            } else {
+                Color::Yellow
+            },
+            branch_color_option.clone(),
+        ),
+    ));
 
-    // Git status --porcelain=v2 --branch
-    let status_output = Command::new("git")
-        .arg("status")
-        .arg("--porcelain=v2")
-        .arg("--branch")
-        .output()
-        .ok()
-        .and_then(|output| String::from_utf8(output.stdout).ok())
-        .unwrap_or_default();
+    // --- ステータス解析 (Staged, Unstaged, etc.) ---
+    let mut opts = StatusOptions::new();
+    opts.include_untracked(true).recurse_untracked_dirs(true);
 
-    let mut ahead = 0;
-    let mut behind = 0;
-    let mut staged_changes = 0;
-    let mut unstaged_changes = 0;
-    let mut untracked_files = 0;
+    let mut staged = 0;
+    let mut unstaged = 0;
+    let mut untracked = 0;
     let mut conflicts = 0;
 
-    for line in status_output.lines() {
-        if line.starts_with("# branch.ab") {
-            let re = Regex::new(r"\+([0-9]+) -([0-9]+)").unwrap();
-            if let Some(captures) = re.captures(line)
-                && let (Some(a), Some(b)) = (captures.get(1), captures.get(2)) {
-                    ahead = a.as_str().parse().unwrap_or(0);
-                    behind = b.as_str().parse().unwrap_or(0);
-                }
-        } else if line.starts_with("1") || line.starts_with("2") {
-            // Normal, Renamed, Copied
-            let x = line.chars().nth(2).unwrap_or('.'); // Staged
-            let y = line.chars().nth(3).unwrap_or('.'); // Unstaged
-
-            if x != '.' {
-                staged_changes += 1;
+    if let Ok(statuses) = repo.statuses(Some(&mut opts)) {
+        for entry in statuses.iter() {
+            let s = entry.status();
+            if s.is_conflicted() {
+                conflicts += 1;
             }
-            if y != '.' {
-                unstaged_changes += 1;
+            if s.is_wt_new() {
+                untracked += 1;
             }
-        } else if line.starts_with("u") {
-            // Unmerged (conflict)
-            conflicts += 1;
-        } else if line.starts_with("?") {
-            // Untracked
-            untracked_files += 1;
+            if s.intersects(
+                Status::WT_MODIFIED
+                    | Status::WT_DELETED
+                    | Status::WT_RENAMED
+                    | Status::WT_TYPECHANGE,
+            ) {
+                unstaged += 1;
+            }
+            if s.intersects(
+                Status::INDEX_NEW
+                    | Status::INDEX_MODIFIED
+                    | Status::INDEX_DELETED
+                    | Status::INDEX_RENAMED
+                    | Status::INDEX_TYPECHANGE,
+            ) {
+                staged += 1;
+            }
         }
     }
 
-    // Stash status
-    let stashed = Command::new("git")
-        .arg("rev-parse")
-        .arg("--verify")
-        .arg("refs/stash")
-        .output()
-        .map(|output| output.status.success())
-        .unwrap_or(false);
+    // --- Ahead / Behind の取得 ---
+    let (mut ahead, mut behind) = (0, 0);
+    if let Ok(head) = repo.head() {
+        if let Ok(local_oid) = head.target().ok_or(()) {
+            if let Ok(upstream_branch) = repo.branch_upstream_name(head.name().unwrap_or("")) {
+                if let Ok(upstream_oid) = repo.refname_to_id(upstream_branch.as_str().unwrap_or(""))
+                {
+                    if let Ok((a, b)) = repo.graph_ahead_behind(local_oid, upstream_oid) {
+                        ahead = a;
+                        behind = b;
+                    }
+                }
+            }
+        }
+    }
 
-    // Assemble status icons
-    if staged_changes > 0 {
+    // --- Stash の確認 ---
+    let mut has_stash = false;
+    let _ = repo.stash_foreach(|_, _, _| {
+        has_stash = true;
+        false // 1つ見つかれば十分なのでイテレーションを止める
+    });
+
+    // --- セグメントの組み立て ---
+    if staged > 0 {
         segments.push(PromptSegment::new_with_color(
-            format!("+{}", staged_changes),
-            &get_color(Color::Green, staged_color_option.clone()),
+            format!("+{}", staged),
+            &get_color(Color::Green, staged_color_option),
         ));
     }
-    if unstaged_changes > 0 {
+    if unstaged > 0 {
         segments.push(PromptSegment::new_with_color(
-            format!("!{}", unstaged_changes),
-            &get_color(Color::Red, unstaged_color_option.clone()),
+            format!("!{}", unstaged),
+            &get_color(Color::Red, unstaged_color_option),
         ));
     }
-    if untracked_files > 0 {
+    if untracked > 0 {
         segments.push(PromptSegment::new_with_color(
-            format!("?{}", untracked_files),
-            &get_color(Color::Cyan, untracked_color_option.clone()),
+            format!("?{}", untracked),
+            &get_color(Color::Cyan, untracked_color_option),
         ));
     }
     if conflicts > 0 {
         segments.push(PromptSegment::new_with_color(
             format!("{}", conflicts),
-            &get_color(Color::Magenta, conflict_color_option.clone()),
+            &get_color(Color::Magenta, conflict_color_option),
         ));
     }
-    if stashed {
+    if has_stash {
         segments.push(PromptSegment::new_with_color(
             "".to_string(),
-            &get_color(Color::Blue, stashed_color_option.clone()),
+            &get_color(Color::Blue, stashed_color_option),
         ));
     }
-
-    if staged_changes == 0
-        && unstaged_changes == 0
-        && untracked_files == 0
-        && conflicts == 0
-        && !stashed
-    {
+    if staged == 0 && unstaged == 0 && untracked == 0 && conflicts == 0 && !has_stash {
         segments.push(PromptSegment::new_with_color(
             "".to_string(),
-            &get_color(Color::Green, clean_color_option.clone()),
-        )); // Clean icon
+            &get_color(Color::Green, clean_color_option),
+        ));
     }
-
-    // Assemble push/pull status
     if ahead > 0 {
         segments.push(PromptSegment::new_with_color(
             format!("↑{}", ahead),
-            &get_color(Color::White, ahead_color_option.clone()),
+            &get_color(Color::White, ahead_color_option),
         ));
     }
     if behind > 0 {
         segments.push(PromptSegment::new_with_color(
             format!("↓{}", behind),
-            &get_color(Color::Red, behind_color_option.clone()),
+            &get_color(Color::Red, behind_color_option),
         ));
     }
 
