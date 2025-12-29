@@ -4,7 +4,7 @@ use clap::Subcommand;
 pub use modules::*;
 pub use serde::Deserialize;
 pub use serde::Serialize;
-#[derive(Subcommand, Debug, Serialize, Deserialize)]
+#[derive(Subcommand, Debug, Serialize, Deserialize, Clone)]
 pub enum Commands {
     /// Get OS icon
     Os {
