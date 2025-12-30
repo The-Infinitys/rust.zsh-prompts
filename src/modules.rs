@@ -9,7 +9,9 @@ pub mod pwd;
 pub mod time;
 
 // 色の選択肢を定義するenum
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
+#[derive(
+    Debug, PartialEq, Eq, Hash, Clone, Copy, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive,
+)]
 pub enum Color {
     Red,
     Green,

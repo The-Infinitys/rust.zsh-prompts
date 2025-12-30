@@ -6,7 +6,17 @@ use clap::Subcommand;
 pub use modules::*;
 pub use serde::Deserialize;
 pub use serde::Serialize;
-#[derive(Subcommand, Debug, Serialize, Deserialize, Clone)]
+
+#[derive(
+    Subcommand,
+    Debug,
+    Serialize,
+    Deserialize,
+    Clone,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+    rkyv::Archive,
+)]
 pub enum Commands {
     /// Get OS icon
     Os {
@@ -28,6 +38,7 @@ pub enum Commands {
         #[command(flatten)]
         options: GitStatusOptions,
         #[arg(long)]
+        #[rkyv(with = rkyv::with::Map<rkyv::with::AsString>)]
         #[serde(skip_serializing_if = "Option::is_none")]
         path: Option<PathBuf>,
     },

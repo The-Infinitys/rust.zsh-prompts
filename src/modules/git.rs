@@ -11,7 +11,9 @@ lazy_static! {
     static ref RE_GITHUB: Regex = Regex::new(r"github\.com").unwrap();
     static ref RE_GITLAB: Regex = Regex::new(r"gitlab\.com").unwrap();
 }
-#[derive(Debug, Clone, Serialize, Deserialize, Args)]
+#[derive(
+    Debug, Clone, Serialize, Deserialize, Args, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive,
+)]
 pub struct GitStatusOptions {
     #[arg(long)]
     pub default_color_option: Option<Color>,
