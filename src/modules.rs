@@ -115,7 +115,7 @@ impl Color {
         }
     }
 }
-
+#[derive(Debug, Clone, rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
 pub struct PromptSegment {
     pub content: String,
     pub color: Option<Color>,
