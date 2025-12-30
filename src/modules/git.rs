@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::modules::{Color, PromptSegment};
 use clap::Args;
 use git2::{Repository, Status, StatusOptions};
@@ -35,7 +37,7 @@ pub struct GitStatusOptions {
     pub behind_color_option: Option<Color>,
 }
 
-pub fn get_git_status(options: GitStatusOptions) -> Vec<PromptSegment> {
+pub fn get_git_status(options: GitStatusOptions, path: &Option<PathBuf>) -> Vec<PromptSegment> {
     let mut segments: Vec<PromptSegment> = Vec::new();
 
     let get_color = |specific_color: Color, override_color: Option<Color>| {
@@ -46,9 +48,16 @@ pub fn get_git_status(options: GitStatusOptions) -> Vec<PromptSegment> {
     };
 
     // 1. カレントディレクトリからリポジトリを探索
-    let mut repo = match Repository::discover(".") {
-        Ok(r) => r,
-        Err(_) => return segments, // Gitリポジトリではない
+    let mut repo = match if let Some(path) = path {
+        Repository::discover(path)
+    } else {
+        Repository::discover(".")
+    } {
+        Ok(repo) => repo,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            return segments;
+        }
     };
 
     // --- Remote Icon の取得 ---
