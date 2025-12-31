@@ -1,9 +1,6 @@
 use crate::modules::{Color, PromptSegment};
 use chrono::Utc;
-#[cfg(not(feature = "zsh-module"))]
 use std::env;
-#[cfg(all(feature = "zsh-module"))]
-use std::ffi::CString;
 
 pub fn get_execution_info(
     last_status_var_name: &String,
@@ -11,39 +8,13 @@ pub fn get_execution_info(
     color: Option<Color>,
 ) -> PromptSegment {
     // 1. 環境変数名からステータスを取得
-    #[cfg(not(feature = "zsh-module"))]
     let last_status: i32 = env::var(last_status_var_name)
         .ok()
         .and_then(|val| val.parse().ok())
         .unwrap_or(0);
-    #[cfg(feature = "zsh-module")]
-    let last_status: i32 = unsafe {
-        let name = CString::new(last_status_var_name.as_str()).unwrap();
-        // Zsh内部の整数パラメータを取得
-        zsh_sys::getiparam(name.as_ptr() as *mut _) as i32
-    };
-    // 2. 環境変数名から実行開始時刻を取得
-    let last_command_executed: Option<f64> =
-        last_command_executed_var_name.as_ref().and_then(|name| {
-            #[cfg(feature = "zsh-module")]
-            {
-                unsafe {
-                    let name_c = CString::new(name.as_str()).unwrap();
-                    let val_ptr = zsh_sys::getsparam(name_c.as_ptr() as *mut _);
-                    if val_ptr.is_null() {
-                        None
-                    } else {
-                        let val_str = std::ffi::CStr::from_ptr(val_ptr).to_string_lossy();
-                        val_str.parse::<f64>().ok()
-                    }
-                }
-            }
-
-            #[cfg(not(feature = "zsh-module"))]
-            {
-                env::var(name).ok().and_then(|val| val.parse().ok())
-            }
-        });
+    let last_command_executed: Option<f64> = last_command_executed_var_name
+        .as_ref()
+        .and_then(|name| env::var(name).ok().and_then(|val| val.parse().ok()));
     let status_icon: &str;
     let segment_color: Color;
 
